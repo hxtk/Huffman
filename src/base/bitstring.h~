@@ -1,0 +1,9 @@
+// Copyright: Peter Sanders. All rights reserved.
+// Date: 2016-12-08
+//
+// This class defines a bitstring. It is similar to std::vector<bool>
+// and std::bitset<>. From std::vector<bool>, it takes the dynamic size.
+// From std::bitset<>, it takes the semantics and implied meaning.
+//
+// Additional functionality includes the ability to concatenate two bitstrings
+// and access to the base memory pointer.
