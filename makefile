@@ -7,27 +7,42 @@ BUILD = build
 TEST = test
 
 CPP := g++
-CPPFLAGS := -g -std=c++11 -I$(SRC) -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Werror -Wno-unused
+CFLAGS := -g -std=c++11 -I$(SRC)/ -lgflags -lglog -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused
 
 ### General rules
-all: $(BUILD)/huffman
+all: $(BUILD)/huffman $(TEST)/bitstring
 
 clean:
-	rm $(OBJ)/*.o $(BUILD)/* 
+	rm -r $(OBJ)/* $(BUILD)/* 
+	true
+
+test: $(TEST)/bitstring
 
 $(OBJ)/%.o: %(SRC)/%.h
 
-$(BUILD)/huffman: $(OBJ)/main.o $(OBJ)/huffman.o $(SRC)/node.h
+$(OBJ)/huffman/%.o:
+	mkdir $(OBJ)/huffman
+
+$(OBJ)/base/%:
+	mkdir $(OBJ)/base
+
+$(BUILD)/huffman: $(OBJ)/main.o $(OBJ)/huffman/huffman.o $(OBJ)/base/bitstring.o
 	$(CPP) $(CFLAGS) -o $@ $^
 
 $(OBJ)/main.o: $(SRC)/main.cc
 	$(CPP) $(CFLAGS) -o $@ -c $^
 
-$(OBJ)/huffman.o: $(SRC)/huffman.h $(SRC)/node.h
-	$(CPP) $(CFLAGS) -o $@ -c $(SRC)/huffman.cc
+$(OBJ)/huffman/huffman.o: $(SRC)/huffman/huffman.h $(SRC)/huffman/node.h
+	$(CPP) $(CFLAGS) -o $@ -c $(SRC)/huffman/huffman.cc
 
-#$(OBJ)/node.o: $(SRC)/node.h
-#	$(CPP) $(CFLAGS) -o $@ $^
+$(OBJ)/base/bitstring.o: $(SRC)/base/bitstring.h
+	$(CPP) $(CFLAGS) -o $@ -c $(SRC)/base/bitstring.cc
+
+$(OBJ)/base/bitstring_test.o: $(SRC)/base/bitstring_test.cc
+	$(CPP) $(CFLAGS) -o $@ -c $^
+
+$(TEST)/bitstring: $(OBJ)/base/bitstring_test.o $(OBJ)/base/bitstring.o
+	$(CPP) $(CFLAGS) -o $@ $^
 
 .PHONY: clean all test
 

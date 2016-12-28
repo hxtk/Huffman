@@ -2,15 +2,17 @@
 // Date: 2016-11-30
 
 #include <cstdlib>
+#include <cstdint>
 
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <vector>
 
-#include <unistd.h>
+#include <glog/logging.h>
+#include <gflags/gflags.h>
 
-#include "huffman.h"
+#include "base/bitstring.h"
+#include "huffman/huffman.h"
 
 using std::cout;
 using std::cerr;
@@ -21,7 +23,11 @@ using std::ifstream;
 using std::ios;
 
 using std::string;
-using std::vector;
+
+DEFINE_string(f, "archive.huf", "A .huf archive");
+DEFINE_bool(c, false, "Create an archive");
+DEFINE_bool(x, false, "Extract an archive");
+
 
 void usage(char** argv) {
   cout << "Huffman File Compression\n\n"
@@ -36,9 +42,9 @@ void usage(char** argv) {
   exit(1);
 }
 
-void create(char* archive_file_name, char* data_file_name) {
+void create(char* data_file_name) {
   ifstream data_file(data_file_name, std::ios::binary);
-  ofstream archive_file(archive_file_name, std::ios::binary);
+  ofstream archive_file(FLAGS_f, std::ios::binary);
   if (!archive_file.is_open()) {
     cerr << "Could not open output stream." << endl;
     exit(1);
@@ -52,67 +58,68 @@ void create(char* archive_file_name, char* data_file_name) {
   in_size = data_file.tellg() - in_size;
   data_file.seekg(0, ios::beg);
 
+  cout << "Creating input buffer" << endl;
+  
   char* in_buffer = new char[in_size];
   data_file.read(in_buffer, in_size);
   data_file.close();
 
-  Huffman huf;
+  cout << "Input buffer complete; buiding encoding tree" << endl;
+  
+  huffman::Huffman huf;
   huf.BuildTree(reinterpret_cast<unsigned char*>(in_buffer), in_size);
+
+  cout << "Encoding tree built; serializing histogram." << endl;
   
   char* out_buffer = nullptr;
   int out_size = -1;
-  huf.Serialize(&out_buffer, &out_size);
+  huf.Serialize(reinterpret_cast<uint8_t**>(&out_buffer), &out_size);
   archive_file.write(out_buffer, out_size);
   delete[] out_buffer;
 
-  vector<bool> encoded = {};
+  cout << "Histogram serialized and written to output; encoding file." << endl;
+
+  base::BitString encoded;
   huf.BuildMap();
+
+  cout << "Map built... ";
+  
   huf.Encode(in_buffer, in_size, &encoded);
   delete[] in_buffer;
 
-  archive_file.write(
-      reinterpret_cast<const char*>(&encoded[0]), encoded.size());
+  cout << "File encoded. Serializing bitstring." << endl;
+
+  out_buffer = nullptr;
+  out_size = -1;
+  encoded.Serialize(reinterpret_cast<uint8_t**>(&out_buffer), &out_size);
+
+  archive_file.write(out_buffer, out_size);
+  delete[] out_buffer;
+
   archive_file.flush();
   archive_file.close();
 }
 
-void extract(char* archive_file_name, char* data_file_name);
+void extract(char* data_file_name);
 
 int main(int argc, char** argv) {
-  bool extract_flag = false;
-  bool create_flag = false;
-  int character = 0;
-  char* archive_file = nullptr;
+  gflags::SetUsageMessage(string(argv[0]) + " -<x|c> -f <archive.huf> <file>");
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  opterr = 0;
-
-  while (character = getopt(argc, argv, "c:x:h") != -1) {
-    switch (character) {
-      case 'x':
-        extract_flag = true;
-        break;
-      case 'c':
-        create_flag = true;
-        break;
-      case 'h':
-      default:
-        usage(argv);
-    }
-  }
-  // There must be only one non-consumed input string, which shall be
-  // the input file.
-  //
-  // Further, one may only create or extract an archive.
-  // Both cannot be done at once.
-  if (optind + 1 != argc || (!extract_flag == !create_flag)) {
+  // Only one of `x` and `c` may be used
+  // There must be exactly one argument remaining
+  if (FLAGS_x == FLAGS_c)
     usage(argv);
+
+  cout << argc << endl;
+
+  if (FLAGS_x) {
+    //    extract(argv[1]);
+    cout << "unimplemented" << endl;
+  } else {
+    create(argv[1]);
   }
 
-  if (extract_flag) {
-    extract(optarg, argv[optind]);
-  } else {
-    create(optarg, argv[optind]);
-  }
-  
+  gflags::ShutDownCommandLineFlags();
   return 0;
 }

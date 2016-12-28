@@ -6,6 +6,7 @@
 #ifndef HUFFMAN_NODE_H_
 #define HUFFMAN_NODE_H_
 
+namespace huffman {
 class Node {
  public:
   //////////////////////////////////////////////////////////////////////////////
@@ -81,6 +82,7 @@ class Node {
   bool InitLeaf(char symbol, int frequency) {
     symbol_ = symbol;
     frequency_ = frequency;
+    return true;
   }
 
   // If a Node is not a leaf node, the symbol is left at the default
@@ -89,6 +91,7 @@ class Node {
     left_ = left;
     right_ = right;
     frequency_ = frequency;
+    return true;
   }
   
   char symbol_ = kDummySymbol;
@@ -97,5 +100,6 @@ class Node {
   Node* left_ = nullptr;
   Node* right_ = nullptr;
 };  // class Node
-
+}  // namespace huffman
+ 
 #endif  // HUFFMAN_NODE_H_
