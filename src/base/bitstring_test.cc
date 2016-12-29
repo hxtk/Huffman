@@ -1,6 +1,8 @@
 // Copyright: Peter Sanders. All rights reserved.
 // Date: 2016-12-28
 
+#include <cstdint>
+
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -50,6 +52,19 @@ int main(int argc, char** argv) {
     bs2.PopBack();
     cout << bs2 << endl;
   }
+  
+  cout << "Serialize third string" << endl;
+  void* buffer = nullptr;
+  int size = -1;
+  bs3.Serialize(&buffer, &size);
+
+  cout << "Serialized.\nSize: " << size << " bytes. Unserializing." << endl;
+
+  base::BitString bs4;
+  bs4.Unserialize(buffer, size);
+
+  cout << "original: " << bs3 << "\n"
+       << "serial:   " << bs4 << endl;
 
   cout << "Empty third string" << endl;
   while (!bs3.empty()) {
