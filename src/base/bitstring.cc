@@ -74,7 +74,7 @@ void BitString::PopBack() {
   --size_;
 }
 
-void BitString::Serialize(uint8_t** buffer, int* size) const {
+void BitString::Serialize(void** buffer, int* size) const {
   *size = sizeof(size_) + bytes_.size();
   *buffer = new uint8_t[*size];
 
@@ -84,11 +84,27 @@ void BitString::Serialize(uint8_t** buffer, int* size) const {
   memcpy(*buffer + sizeof(size_), bytes_.data(), bytes_.size());
 }
 
-bool BitString::Unserialize(const char* input, int size) {
+bool BitString::Unserialize(const void* input, int size) {
   this->clear();
+
+  // There must be at least enough space for the size header
+  if (size < sizeof(size_))
+    return false;
+  
   size_ = *(reinterpret_cast<const uint32_t*>(input));
 
-  uint32_t container_size = (size_ % 8 == 0) ? (size / 8) : ((size / 8) + 1);
+  // Since we cannot allocate fractions of bytes, a trailing partially-filled
+  // byte must be considered full. As such we use a least-integer function
+  // which is less trivial than the greatest-integer function without the use
+  // of math libraries.
+  uint32_t container_size = (size_ % 8 == 0) ? (size_ / 8) : ((size_ / 8) + 1);
+
+  // Now the size is well-defined, we can make the final size test.
+  if (size < container_size)
+    return false;
+
+  // Now that the container has the proper size
+  // copy the data segment of the buffer into it
   bytes_.resize(container_size);
   memcpy(bytes_.data(), input + sizeof(size_), bytes_.size());
 

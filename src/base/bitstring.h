@@ -62,17 +62,17 @@ class BitString {
   // the stored bits. The size header is necessary because the last byte may
   // contain between one (1) and eight (8) well-defined bits.
   // NOTE: the calling context is responsible for deleting this pointer
-  void Serialize(uint8_t** buffer, int* size) const;
+  void Serialize(void** buffer, int* size) const;
 
   // Given a string of the format described above, decode it to a bitstring.
-  bool Unserialize(const char* input, int size);
+  bool Unserialize(const void* input, int size);
 
   // Returns the number of bools packed in the container.
   uint32_t size() const {
     return size_;
   }
   void clear() {
-    bytes_.resize(0);
+    bytes_.resize(1);
     size_ = 0;
   }
   bool empty() {
