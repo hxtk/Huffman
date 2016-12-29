@@ -6,6 +6,8 @@
 #ifndef HUFFMAN_NODE_H_
 #define HUFFMAN_NODE_H_
 
+#include <cstdint>
+
 namespace huffman {
 class Node {
  public:
@@ -62,7 +64,7 @@ class Node {
     return right_;
   }
 
-  char get_symbol() const {
+  uint8_t get_symbol() const {
     return symbol_;
   }
 
@@ -94,7 +96,7 @@ class Node {
     return true;
   }
   
-  char symbol_ = kDummySymbol;
+  uint8_t symbol_ = kDummySymbol;
   int frequency_ = kDummyFrequency;
 
   Node* left_ = nullptr;

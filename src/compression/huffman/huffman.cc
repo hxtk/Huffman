@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstring>  
 
+#include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <queue>    
@@ -24,11 +26,16 @@ using std::unordered_map;
 
 using base::BitString;
 
+using std::cout;
+using std::endl;
+
 namespace huffman {
-void Huffman::BuildTree(const uint8_t* text, int size) {
+void Huffman::BuildTree(const void* text, int size) {
+  uint8_t* values_ptr = reinterpret_cast<uint8_t*>(text);
+
   histogram_ = vector<int>(base::kMaxByte, 0);
   for (int i = 0; i < size; ++i) {
-    ++histogram_.at(text[i]);
+    ++histogram_.at(values_ptr[i]);
   }
   this->BuildTree();
 }
@@ -53,13 +60,17 @@ void Huffman::BuildTree() {
 }
 
 bool Huffman::BuildMap() {
+  if (tree_ == nullptr) return false;
+
   BitString bits;
-  return (tree_ != nullptr) && BuildMap(tree_, &bits);
+  BuildMap(tree_, &bits);
+
+  return true;
 }
 
 bool Huffman::BuildMap(Node* fakeroot, BitString* bits) {
   if (fakeroot->is_leaf()) {
-    encode_map_[fakeroot->get_symbol()] = *bits;
+    encode_map_.emplace(fakeroot->get_symbol(), *bits);
     return true;
   }
   bool res = true;
@@ -79,21 +90,21 @@ bool Huffman::BuildMap(Node* fakeroot, BitString* bits) {
 
 void Huffman::Encode(const string& text, base::BitString* bits) const {
   bits->clear();
-  vector<bool> v_bits;
   for (auto it = text.cbegin(); it != text.cend(); ++it) {
     bits->Append(encode_map_.at(*it));
   }
 }
 
-void Huffman::Encode(const char* text, int size, base::BitString* bits) const {
+void Huffman::Encode(
+    const uint8_t* text, int size, base::BitString* bits) const {
   bits->clear();
   for (int i = 0; i < size; ++i) {
     bits->Append(encode_map_.at(text[i]));
   }
 }
 
-string Huffman::Decode(const BitString& bits) const {
-  string res = "";
+vector<uint8_t> Huffman::Decode(const BitString& bits) const {
+  vector<uint8_t> res = {};
   Node* node_iter = tree_;
   for (int i = 0; i < bits.size(); ++i) {
     if (bits.Get(i)) {
@@ -103,14 +114,14 @@ string Huffman::Decode(const BitString& bits) const {
     }
 
     if (node_iter->is_leaf()) {
-      res += node_iter->get_symbol();
+      res.push_back(node_iter->get_symbol());
       node_iter = tree_;
     }
   }
   return res;
 }
 
-void Huffman::Serialize(uint8_t** buffer, int* size) const {
+void Huffman::Serialize(void** buffer, int* size) const {
   // Several parts of this function depend upon
   // the histogram being the proper size.
   assert(histogram_.size() == base::kMaxByte);
@@ -129,7 +140,7 @@ void Huffman::Serialize(uint8_t** buffer, int* size) const {
   }
 
   if (count_nonzero > kBreakEvenHistogramSize) {
-    *size = base::kMaxByte*sizeof(int) + 1;
+    *size = base::kMaxByte*sizeof(int) + sizeof(uint8_t);
     *buffer = new uint8_t[*size];
 
     // The 0th byte is the number of elements.
@@ -140,8 +151,9 @@ void Huffman::Serialize(uint8_t** buffer, int* size) const {
     // to hold the histogram and the header byte.
     assert(histogram_.size()*sizeof(histogram_.front()) + 1 == *size);
 
-    // NOTE: begin one byte after start of buffer
+    // NOTE: begin one byte after start of buffer;
     //       copy one fewer bytes than the size of the buffer
+    //       This is because the heder takes up the first byte.
     std::memcpy(*buffer + 1,
                 reinterpret_cast<const uint8_t*>(histogram_.data()),
                 *size - 1);
@@ -151,7 +163,7 @@ void Huffman::Serialize(uint8_t** buffer, int* size) const {
     *buffer = new uint8_t[*size];
     (*buffer)[0] = count_nonzero;
 
-    unsigned char* ptr = *buffer + 1;
+    uint8_t* ptr = *buffer + 1;
     for (int i = 0; i < histogram_.size(); ++i) {
       if (histogram_.at(i) > 0) {
         int* int_ptr = reinterpret_cast<int*>(ptr + 1);
@@ -165,17 +177,20 @@ void Huffman::Serialize(uint8_t** buffer, int* size) const {
   }
 }
 
-void Huffman::Unserialize(const uint8_t* bytes) {
+bool Huffman::Unserialize(const void* bytes, int size) {
+  if (size < Huffman::get_header_size(bytes)) {
+    return false;
+  }
+  assert(size >= Huffman::get_header_size(bytes));
   if (bytes[0] == 0) {
-    assert(sizeof(bytes) >= Huffman::get_header_size(bytes));
     histogram_.resize(base::kMaxByte);
     std::memcpy(histogram_.data(),
-                reinterpret_cast<const int32_t*>(bytes + 1),
-                base::kMaxByte * sizeof(int32_t));
+                bytes + 1,
+                histogram_.size() * sizeof(histogram_.front()));
   } else {
     histogram_ = vector<int32_t>(256, 0);
     int num_entries = static_cast<int32_t>(bytes[0]);
-    for (int i = 0; i < num_entries; ++i) {
+    for (int i = 0; i < num_entries*kEntryWidth; i += kEntryWidth) {
       uint8_t index =
           *reinterpret_cast<const uint8_t*>(bytes + 1 + (i*kEntryWidth));
       int32_t value =
@@ -183,6 +198,8 @@ void Huffman::Unserialize(const uint8_t* bytes) {
       histogram_.at(index) = value;
     }
   }
+  this->BuildTree();
+  return true;
 }
 
 string Huffman::ToString() const {

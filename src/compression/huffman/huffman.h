@@ -68,7 +68,7 @@ class Huffman {
   //
   // Next, execution is passed off to |BuildTree()|
   void BuildTree(const std::string& text);
-  void BuildTree(const uint8_t* text, int size);
+  void BuildTree(const void* text, int size);
 
   // NOTE: This must be called AFTER |BuildTree| or |Unserialize|
   //
@@ -86,7 +86,7 @@ class Huffman {
   // This function accepts a string and encodes it using the Huffman Tree
   // A bitstring is then returned containing the encoded bytestring.
   void Encode(const std::string& text, base::BitString* bits) const;
-  void Encode(const char* text, int size, base::BitString* bits) const;
+  void Encode(const uint8_t* text, int size, base::BitString* bits) const;
 
   // NOTE: This function must be called AFTER |BuildTree| or |Unserialize|
   // NOTE: This function does NOT depend on |BuildMap|
@@ -98,7 +98,7 @@ class Huffman {
   // A |1| bit indicates (right). A |0| bit indicates left.
   // If the current node is a leaf node, add it to the buffer
   // and reset current node to root.
-  std::string Decode(const base::BitString& bits) const;
+  std::vector<uint8_t> Decode(const base::BitString& bits) const;
 
   // This function returns a pointer to a buffer
   // containing the canonical byte representation of the histogram.
@@ -121,20 +121,21 @@ class Huffman {
   // of the histogram. Because [[205*(5 bytes) > 256*(4 bytes)]], this is
   // more space-efficient than storing only non-zero values for any histogram
   // with more than 204 unique entries.
-  void Serialize(uint8_t** buffer, int* size) const;
+  void Serialize(void** buffer, int* size) const;
 
   // This accepts the standard serialized string and initializes the object
   // such that it matches the one that was serialized.
   // This is accomplished by first initializing the histogram from the serial
   // string, and then calling |BuildTree()|
-  void Unserialize(const uint8_t* bytes);
+  bool Unserialize(const void* bytes, int size);
 
   // This returns the canonical string form of the Huffman Coding Tree
   std::string ToString() const;
 
-  static const char* get_data_segment(const uint8_t* buffer) {
-    return reinterpret_cast<const char*>(
-        buffer + Huffman::get_header_size(buffer));
+  // Given a buffer containing a huffman archive
+  // return a pointer to the beginning of the data segment.
+  static const uint8_t* get_data_segment(const uint8_t* buffer) {
+    buffer + Huffman::get_header_size(buffer);
   }
 
   static int get_header_size(const uint8_t* buffer) {
@@ -158,10 +159,10 @@ class Huffman {
   // These are the recursive calls for the associated public functions
   // of the same name.
   std::string ToString(Node* fakeroot, int depth) const;
-  bool BuildMap(Node* fakeroot, base::BitString bits);
+  bool BuildMap(Node* fakeroot, base::BitString* bits);
 
   Node* tree_ = nullptr;
-  std::unordered_map<char, base::BitString> encode_map_ = {};
+  std::unordered_map<uint8_t, base::BitString> encode_map_ = {};
   std::vector<int32_t> histogram_ = {};
 };  // class Huffman
 }  // namespace huffman

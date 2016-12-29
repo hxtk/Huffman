@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include <glog/logging.h>
 #include <gflags/gflags.h>
@@ -23,28 +24,18 @@ using std::ifstream;
 using std::ios;
 
 using std::string;
+using std::vector;
 
 DEFINE_string(f, "archive.huf", "A .huf archive");
 DEFINE_bool(c, false, "Create an archive");
 DEFINE_bool(x, false, "Extract an archive");
 
-
-void usage(char** argv) {
-  cout << "Huffman File Compression\n\n"
-       << "\t-h\t\tPrints this usage information\n"
-       << "\t-x <archive>\tArchive file to be extracted\n"
-       << "\t-x <archive>\tArchive file to be created\n\n"
-       << "Exactly one of <c|x> must be used. "
-       << "Additionally, a filename is required to specify "
-       << "the file being compressed for the `c` flag or "
-       << "the location to write the decompressed data "
-       << "for the `x` flag." << endl;
-  exit(1);
-}
-
 void create(char* data_file_name) {
+  // Open files
   ifstream data_file(data_file_name, std::ios::binary);
   ofstream archive_file(FLAGS_f, std::ios::binary);
+
+  // Ensure that both files are opened
   if (!archive_file.is_open()) {
     cerr << "Could not open output stream." << endl;
     exit(1);
@@ -52,55 +43,102 @@ void create(char* data_file_name) {
     cerr << "Data file not found." << endl;
     exit(1);
   }
-  
+
+  // Find size of uncompressed file and create a buffer to hold it
   int in_size = data_file.tellg();
   data_file.seekg(0, ios::end);
   in_size = data_file.tellg() - in_size;
   data_file.seekg(0, ios::beg);
 
-  cout << "Creating input buffer" << endl;
-  
-  char* in_buffer = new char[in_size];
+  // Read the uncompressed file into the buffer and close the file stream
+  void* in_buffer = new char[in_size];
   data_file.read(in_buffer, in_size);
   data_file.close();
 
-  cout << "Input buffer complete; buiding encoding tree" << endl;
-  
+  // Create a Huffman Coding object and initialize the histogram
+  // from the file buffer.
   huffman::Huffman huf;
-  huf.BuildTree(reinterpret_cast<unsigned char*>(in_buffer), in_size);
+  huf.BuildTree(in_buffer, in_size);
 
-  cout << "Encoding tree built; serializing histogram." << endl;
-  
-  char* out_buffer = nullptr;
+  // Create and write the header of the oputput file
+  void* out_buffer = nullptr;
   int out_size = -1;
-  huf.Serialize(reinterpret_cast<uint8_t**>(&out_buffer), &out_size);
+  huf.Serialize(&out_buffer, &out_size);
   archive_file.write(out_buffer, out_size);
   delete[] out_buffer;
 
-  cout << "Histogram serialized and written to output; encoding file." << endl;
-
-  base::BitString encoded;
+  // Encode the uncompressed file into a packed bitstring and delete the buffer
   huf.BuildMap();
-
-  cout << "Map built... ";
-  
+  base::BitString encoded;
   huf.Encode(in_buffer, in_size, &encoded);
   delete[] in_buffer;
 
-  cout << "File encoded. Serializing bitstring." << endl;
-
+  // Serialize the bitstring and write it to the archive.
   out_buffer = nullptr;
   out_size = -1;
   encoded.Serialize(reinterpret_cast<uint8_t**>(&out_buffer), &out_size);
-
   archive_file.write(out_buffer, out_size);
   delete[] out_buffer;
 
+  // Flush and close the archive file
   archive_file.flush();
   archive_file.close();
 }
 
-void extract(char* data_file_name);
+void extract(char* data_file_name) {
+  // Open files.
+  ifstream archive(FLAGS_f, std::ios::binary);
+  ofstream decompressed(data_file_name, std::ios::binary);
+
+  // Ensure that both files are opened
+  if (!archive.is_open()) {
+    cerr << "Archive not found." << endl;
+    exit(1);
+  }else if (!decompressed.is_open()) {
+    cerr << "Could not open output stream." << endl;
+    exit(1);
+  }
+
+  // Find size of archive file and create a buffer to hold it
+  int in_size = archive.tellg();
+  archive.seekg(0, ios::end);
+  in_size = archive.tellg() - in_size;
+  archive.seekg(0, ios::beg);
+
+  // Read the archive into the buffer and close the file stream
+  char* in_buffer = new char[in_size];
+  archive.read(in_buffer, in_size);
+  archive.close();
+
+  // Unserialize histogram
+  huffman::Huffman huf;
+  huf.Unserialize(reinterpret_cast<uint8_t*>(in_buffer), in_size);
+
+  // Unserialize data segment
+  int bitstring_size = in_size - huffman::Huffman::get_header_size(
+      reinterpret_cast<uint8_t*>(in_buffer));
+
+  cout << "Archive has\nHeader: " << (in_size - bitstring_size)
+       << "\nData: " << bitstring_size
+       << "\nTotal: " << in_size << endl;
+  base::BitString bits;
+  if (!bits.Unserialize(huffman::Huffman::get_data_segment(
+	   reinterpret_cast<uint8_t*>(in_buffer)), bitstring_size)) {
+    cout << "Failed to unserialize bitstring" << endl;
+    delete[] in_buffer;
+    exit(1);
+  }
+  delete[] in_buffer;
+
+  // Decode BitString
+  vector<uint8_t> out_buffer = huf.Decode(bits);
+  const char* out_ptr = reinterpret_cast<char*>(out_buffer.data());
+  decompressed.write(out_ptr, out_buffer.size());
+
+  // Flush and close file
+  decompressed.flush();
+  decompressed.close();
+}
 
 int main(int argc, char** argv) {
   gflags::SetUsageMessage(string(argv[0]) + " -<x|c> -f <archive.huf> <file>");
@@ -108,14 +146,13 @@ int main(int argc, char** argv) {
 
   // Only one of `x` and `c` may be used
   // There must be exactly one argument remaining
-  if (FLAGS_x == FLAGS_c)
-    usage(argv);
-
-  cout << argc << endl;
+  if (FLAGS_x == FLAGS_c || argc != 2) {
+    cout << "See `" << argv[0] << " --help` for usage information." << endl;
+    exit(1);
+  }
 
   if (FLAGS_x) {
-    //    extract(argv[1]);
-    cout << "unimplemented" << endl;
+    extract(argv[1]);
   } else {
     create(argv[1]);
   }
