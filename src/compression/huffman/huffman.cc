@@ -144,7 +144,7 @@ void Huffman::Serialize(void** buffer, int* size) const {
   // one-byte label and a four-byte quantity.
   // |205*5 > 1024|, so this format would only be used if there are 204 or fewer
   // non-zero elements.
-  /*
+
   uint8_t count_nonzero = 0;
   for (auto it = histogram_.cbegin(); it != histogram_.cend(); ++it) {
     if (*it > 0) {
@@ -158,41 +158,72 @@ void Huffman::Serialize(void** buffer, int* size) const {
   }
   
   if (count_nonzero > kBreakEvenHistogramSize) {
-  // END TODO
-  */
+    // Create a buffer large enough to hold a one-byte header
+    // followed by the entire histogram.
+    *size = (sizeof(histogram_.front())*histogram_.size()) + 1;
+    uint8_t* working_buf = new uint8_t[*size];
 
-  // Create a buffer large enough to hold a one-byte header
-  // followed by the entire histogram.
-  *size = (sizeof(histogram_.front())*histogram_.size()) + 1;
-  uint8_t* working_buf = new uint8_t[*size];
+    // This is a magic number indicating a big header in the format.
+    // In future versions, there will be a small header format used, where this
+    // byte will indicate the size of the header segment.
+    *working_buf = 0;
+    *buffer = working_buf;
 
-  // This is a magic number indicating a big header in the format.
-  // In future versions, there will be a small header format used, where this
-  // byte will indicate the size of the header segment.
-  *working_buf = 0;
-  *buffer = working_buf;
+    // NOTE: copy begins one byte after start of buffer
+    // and copies one less than size of buffer to protect
+    // the header byte at the front.
+    memcpy(*buffer + 1, histogram_.data(), *size - 1);
+  } else {
+    // Render the vector down to a map, which will be smaller
+    // if and only if this branch executes.
 
-  // NOTE: copy begins one byte after start of buffer
-  // and copies one less than size of buffer to protect
-  // the header byte at the front.
-  memcpy(*buffer + 1, histogram_.data(), *size - 1);
+    // Provide enough space for all entries and a header byte
+    // Header byte will contain the number of entries.
+    *size = count_nonzero*kEntryWidth + 1;
+    cout << static_cast<uint32_t>(*size) << endl;
+    cout << static_cast<uint32_t>(count_nonzero) << endl;
+    cout << kEntryWidth << endl;
+    uint8_t* working_buf = new uint8_t[*size];
+
+    *working_buf = 0;
+    *buffer = working_buf;
+
+    ++working_buf;
+
+    // Copy the label and value of each non-zero entry into the buffer
+    for (int i = 0; i < histogram_.size(); ++i) {
+      if (histogram_.at(i) > 0) {
+        // Copy label and value into map
+        *working_buf = static_cast<uint8_t>(i);
+        *reinterpret_cast<uint32_t*>(working_buf + 1) = histogram_.at(i);
+
+        working_buf += kEntryWidth;
+      }
+    }
+  }
 }
 
-bool Huffman::Unserialize(const void* bytes, int size) {
+bool Huffman::Unserialize(void* bytes, int size) {
   if (size < Huffman::header_size(bytes)) {
     return false;
   }
 
+  histogram_.resize(base::kMaxByte);
   int num_entries = *(reinterpret_cast<const uint8_t*>(bytes));
 
   if (num_entries == 0) {
-    histogram_.resize(base::kMaxByte);
     std::memcpy(histogram_.data(),
                 bytes + 1,
                 histogram_.size() * sizeof(histogram_.front()));
   } else {
-    // TODO(hxtk): Corresponds to the smallheader format described above.
-    return false;
+    for (void* ptr = bytes + 1;
+         ptr < bytes + 1 + kEntryWidth*num_entries;
+         ++ptr) {
+      uint8_t* byte_ptr = reinterpret_cast<uint8_t*>(ptr);
+      uint32_t* int_ptr = reinterpret_cast<uint32_t*>(ptr + 1);
+
+      histogram_.at(*byte_ptr) = *int_ptr;
+    }
   }
   this->BuildTree();
   return true;

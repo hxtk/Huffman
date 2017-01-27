@@ -103,7 +103,7 @@ class Huffman {
   // such that it matches the one that was serialized.
   // This is accomplished by first initializing the histogram from the serial
   // string, and then calling |BuildTree()|
-  bool Unserialize(const void* bytes, int size);
+  bool Unserialize(void* bytes, int size);
 
   // This returns the canonical string form of the Huffman Coding Tree
   std::string ToString() const;
@@ -123,14 +123,14 @@ class Huffman {
   std::string ToString(Node* fakeroot, int depth) const;
   bool BuildMap(Node* fakeroot, base::BitString* bits);
 
-  static int header_size(const void* bytes) {
-    /*
-    const uint8_t* size = bytes;
-    if (*size <= kBreakEvenHistogramSize) {
-      return kEntryWidth*(*size);
+  static int header_size(void* bytes) {
+    uint8_t size = *reinterpret_cast<uint8_t*>(bytes);
+
+    if (size <= kBreakEvenHistogramSize) {
+      return kEntryWidth*size + 1;
     } else {
-    */
-    return sizeof(int32_t)*base::kMaxByte;
+      return sizeof(int32_t)*base::kMaxByte + 1;
+    }
   }
 
 
