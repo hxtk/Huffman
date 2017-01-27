@@ -81,16 +81,15 @@ class Huffman {
   // the Huffman tree deterministically. As such it is used as
   // the canonical serialization of the object.
   //
-  // TODO(hxtk): Implement the following
-  //   The format begins with a header. This is an unsigned 8-bit int |n|
-  //   giving the number of non-zero entries in the histogram.
-  //   This will be at most 204. If there are more than 204 entries
-  //   in the histogram, there is a more efficient method.
+  // The format begins with a header. This is an unsigned 8-bit int |n|
+  // giving the number of non-zero entries in the histogram.
+  // This will be at most 204. If there are more than 204 entries
+  // in the histogram, there is a more efficient method.
   //
-  //   Subsequently, there will be |n| 5-byte blocks. The first byte is a `char`
-  //   indicating the character whose data is found subsequently.
-  //   The remaining bytes are a 32-bit integer representing the number of times
-  //   that byte occurs in the string.
+  // Subsequently, there will be |n| 5-byte blocks. The first byte is a `char`
+  // indicating the character whose data is found subsequently.
+  // The remaining bytes are a 32-bit integer representing the number of times
+  // that byte occurs in the string.
   //
   // If there are more than 204, the header byte shall be |0| and it shall
   // be followed by exactly 256 32-bit integers, which will be the full data
