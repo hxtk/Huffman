@@ -67,7 +67,9 @@ int main(int argc, char** argv) {
   // TODO: direct comparison of histograms
   void* buffer;
   int serial_size;
-  huf.Serialize(&buffer, &size);
+  huf.Serialize(&buffer, &serial_size);
+
+  cout << "Serialized to " << serial_size << " bytes" << endl;
 
   Huffman huf2;
   huf2.Unserialize(buffer, size);
