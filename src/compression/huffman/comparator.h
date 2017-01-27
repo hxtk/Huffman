@@ -4,7 +4,7 @@
 // This is a comparator class for comparing the values at two pointers
 // It returns true if and only if the value at the first pointer is greater.
 
-#include "huffman/node.h"
+#include "compression/huffman/node.h"
 
 namespace huffman {
 struct Comparator {
