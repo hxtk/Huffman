@@ -4,36 +4,7 @@
 // This class encodes and decodes strings using Huffman Coding.
 // Several methods must be called in order, depending on the use.
 //
-// Encoding a string:
-//      std::string str = ...
-//      Huffman huf;
-//      huf.BuildTree(str);
-//      huf.BuildMap();
-//      vector<bool> encoded = huf.Encode(str);
-//
-// Decoding a bitstring:
-//      std::vector<bool> bits = ...
-//      const char* histogram = ...
-//      Huffman huf;
-//      huf.Unserialize(histogram);
-//      std::string decoded = huf.Decode(bits);
-//
-//      OR
-//
-//      std::string str = ...
-//      Huffman huf;
-//      huf.BuildTree(str);
-//      /* ... */
-//      std::vector<bool> bits = ...
-//      std::string decoded = huf.Decode(bits)
-//
-// Saving a histogram:
-//      Huffman huf;
-//      /* ... */
-//      std::ostream stream(...
-//      char* buffer = huf.Serialize();
-//      stream.write(buffer, huf.GetSerialBufferSize());
-//      delete[] buffer;
+// TODO: document common execution paths
 
 #ifndef HUFFMAN_HUFFMAN_H_
 #define HUFFMAN_HUFFMAN_H_
@@ -49,6 +20,7 @@
 #include "huffman/node.h"
 #include "base/bitstring.h"
 
+namespace compression {
 namespace huffman {
 class Huffman {
  public:  
@@ -86,7 +58,7 @@ class Huffman {
   // This function accepts a string and encodes it using the Huffman Tree
   // A bitstring is then returned containing the encoded bytestring.
   void Encode(const std::string& text, base::BitString* bits) const;
-  void Encode(const uint8_t* text, int size, base::BitString* bits) const;
+  void Encode(const void* text, int size, base::BitString* bits) const;
 
   // NOTE: This function must be called AFTER |BuildTree| or |Unserialize|
   // NOTE: This function does NOT depend on |BuildMap|
@@ -94,11 +66,14 @@ class Huffman {
   // This function accepts a bitstring and converts it into a bytestring
   // using the Huffman Coding Tree.
   //
+  // Returns true if and only if the BitString was well-formed
+  // in the context of this coding tree.
+  //
   // Traverse down the tree according to the bit.
   // A |1| bit indicates (right). A |0| bit indicates left.
   // If the current node is a leaf node, add it to the buffer
   // and reset current node to root.
-  std::vector<uint8_t> Decode(const base::BitString& bits) const;
+  bool Decode(const base::BitString& bits, void** data, int* size) const;
 
   // This function returns a pointer to a buffer
   // containing the canonical byte representation of the histogram.
@@ -106,15 +81,16 @@ class Huffman {
   // the Huffman tree deterministically. As such it is used as
   // the canonical serialization of the object.
   //
-  // The format begins with a header. This is an unsigned 8-bit int |n|
-  // giving the number of non-zero entries in the histogram.
-  // This will be at most 204. If there are more than 204 entries
-  // in the histogram, there is a more efficient method.
+  // TODO(hxtk): Implement the following
+  //   The format begins with a header. This is an unsigned 8-bit int |n|
+  //   giving the number of non-zero entries in the histogram.
+  //   This will be at most 204. If there are more than 204 entries
+  //   in the histogram, there is a more efficient method.
   //
-  // Subsequently, there will be |n| 5-byte blocks. The first byte is a `char`
-  // indicating the character whose data is found subsequently.
-  // The remaining bytes are a 32-bit integer representing the number of times
-  // that byte occurs in the string.
+  //   Subsequently, there will be |n| 5-byte blocks. The first byte is a `char`
+  //   indicating the character whose data is found subsequently.
+  //   The remaining bytes are a 32-bit integer representing the number of times
+  //   that byte occurs in the string.
   //
   // If there are more than 204, the header byte shall be |0| and it shall
   // be followed by exactly 256 32-bit integers, which will be the full data
@@ -131,20 +107,6 @@ class Huffman {
 
   // This returns the canonical string form of the Huffman Coding Tree
   std::string ToString() const;
-
-  // Given a buffer containing a huffman archive
-  // return a pointer to the beginning of the data segment.
-  static const uint8_t* get_data_segment(const uint8_t* buffer) {
-    buffer + Huffman::get_header_size(buffer);
-  }
-
-  static int get_header_size(const uint8_t* buffer) {
-    if(buffer[0] == 0) {
-      return 1 + base::kMaxByte*sizeof(int32_t);
-    } else {
-      return 1 + kEntryWidth*buffer[0];
-    }
-  }
 
  private:
   static constexpr int kBreakEvenHistogramSize = 204;
@@ -163,8 +125,9 @@ class Huffman {
 
   Node* tree_ = nullptr;
   std::unordered_map<uint8_t, base::BitString> encode_map_ = {};
-  std::vector<int32_t> histogram_ = {};
+  std::vector<uint32_t> histogram_ = {};
 };  // class Huffman
 }  // namespace huffman
+}  // namespace compression
 
 #endif  // HUFFMAN_HUFFMAN_H_
