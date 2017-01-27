@@ -48,7 +48,7 @@ $(TEST)/bitstring: $(OBJ)/base/bitstring_test.o $(OBJ)/base/bitstring.o
 	$(CPP) $(CFLAGS) -o $@ $^
 
 $(TEST)/huffman: $(OBJ)/base/bitstring.o $(OBJ)/compression/huffman/huffman.o $(OBJ)/compression/huffman/huffman_test.o
-	$(CPP) $(CFLAGS) -0 $@ $^
+	$(CPP) $(CFLAGS) -o $@ $^
 
 .PHONY: clean all test
 
