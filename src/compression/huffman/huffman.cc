@@ -94,6 +94,9 @@ void Huffman::Encode(const string& text, base::BitString* bits) const {
   for (auto it = text.cbegin(); it != text.cend(); ++it) {
     bits->Append(encode_map_.at(*it));
   }
+
+  // Null-terminate string
+  bits->Append(encode_map_.at(0));
 }
 
 void Huffman::Encode(
