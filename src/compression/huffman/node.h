@@ -36,7 +36,7 @@ class Node {
 
   // This builds a leaf node, which shall have a symbol but no children.
   // It returns a pointer to the constructed Node.
-  static Node* BuildLeaf(char symbol, int frequency) {
+  static Node* BuildLeaf(uint8_t symbol, int frequency) {
     Node* res = new Node();
     res->InitLeaf(symbol, frequency);
     return res;
@@ -81,7 +81,7 @@ class Node {
   
   // A Node contains a symbol if and only if it is a leaf Node.
   // A Leaf Node by definition must have no children.
-  bool InitLeaf(char symbol, int frequency) {
+  bool InitLeaf(uint8_t symbol, int frequency) {
     symbol_ = symbol;
     frequency_ = frequency;
     return true;
