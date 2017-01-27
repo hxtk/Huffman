@@ -20,20 +20,20 @@ test: $(TEST)/bitstring
 
 $(OBJ)/%.o: %(SRC)/%.h
 
-$(OBJ)/huffman/%.o:
+$(OBJ)/compression/huffman/%.o:
 	mkdir $(OBJ)/huffman
 
 $(OBJ)/base/%:
 	mkdir $(OBJ)/base
 
-$(BUILD)/huffman: $(OBJ)/main.o $(OBJ)/huffman/huffman.o $(OBJ)/base/bitstring.o
+$(BUILD)/huffman: $(OBJ)/main.o $(OBJ)/compression/huffman/huffman.o $(OBJ)/base/bitstring.o
 	$(CPP) $(CFLAGS) -o $@ $^
 
 $(OBJ)/main.o: $(SRC)/main.cc
 	$(CPP) $(CFLAGS) -o $@ -c $^
 
-$(OBJ)/huffman/huffman.o: $(SRC)/huffman/huffman.h $(SRC)/huffman/node.h
-	$(CPP) $(CFLAGS) -o $@ -c $(SRC)/huffman/huffman.cc
+$(OBJ)/compression/huffman/huffman.o: $(SRC)/compression/huffman/huffman.h $(SRC)/compression/huffman/node.h
+	$(CPP) $(CFLAGS) -o $@ -c $(SRC)/compression/huffman/huffman.cc
 
 $(OBJ)/base/bitstring.o: $(SRC)/base/bitstring.h
 	$(CPP) $(CFLAGS) -o $@ -c $(SRC)/base/bitstring.cc
