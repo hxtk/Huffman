@@ -17,7 +17,7 @@
 #include <queue>
 #include <unordered_map>
 
-#include "huffman/node.h"
+#include "compression/huffman/node.h"
 #include "base/bitstring.h"
 
 namespace compression {

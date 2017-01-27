@@ -1,7 +1,7 @@
 // Copyright: Peter Sanders. All rights reserved.
 // Date: 2016-11-30
 
-#include "huffman/huffman.h"
+#include "compression/huffman/huffman.h"
 
 #include <cassert>
 #include <cstdint>
@@ -14,8 +14,8 @@
 #include <queue>    
 #include <unordered_map>
 
-#include "huffman/node.h"
-#include "huffman/comparator.h"
+#include "compression/huffman/node.h"
+#include "compression/huffman/comparator.h"
 
 #include "base/bitstring.h"
 
@@ -29,6 +29,7 @@ using base::BitString;
 using std::cout;
 using std::endl;
 
+namespace compression {
 namespace huffman {
 void Huffman::BuildTree(const void* text, int size) {
   const uint8_t* values_ptr = reinterpret_cast<const uint8_t*>(text);
@@ -215,3 +216,4 @@ string Huffman::ToString(Node* fakeroot, int depth) const {
   }
 }
 }  // namespace huffman
+}  // namespace compression
