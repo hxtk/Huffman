@@ -16,7 +16,7 @@ clean:
 	rm -r $(OBJ)/* $(BUILD)/* 
 	true
 
-test: $(TEST)/bitstring
+test: $(TEST)/bitstring $(TEST)/huffman
 
 $(OBJ)/%.o: %(SRC)/%.h
 
@@ -41,8 +41,14 @@ $(OBJ)/base/bitstring.o: $(SRC)/base/bitstring.h
 $(OBJ)/base/bitstring_test.o: $(SRC)/base/bitstring_test.cc
 	$(CPP) $(CFLAGS) -o $@ -c $^
 
+$(OBJ)/compression/huffman/huffman_test.o: $(SRC)/compression/huffman/huffman_test.cc
+	$(CPP) $(CFLAGS) -o $@ -c $^
+
 $(TEST)/bitstring: $(OBJ)/base/bitstring_test.o $(OBJ)/base/bitstring.o
 	$(CPP) $(CFLAGS) -o $@ $^
+
+$(TEST)/huffman: $(OBJ)/base/bitstring.o $(OBJ)/compression/huffman/huffman.o $(OBJ)/huffman/huffman_test.o
+	$(CPP) $(CFLAGS) -0 $@ $^
 
 .PHONY: clean all test
 
