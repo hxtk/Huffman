@@ -123,6 +123,17 @@ class Huffman {
   std::string ToString(Node* fakeroot, int depth) const;
   bool BuildMap(Node* fakeroot, base::BitString* bits);
 
+  static int header_size(const void* bytes) {
+    /*
+    const uint8_t* size = bytes;
+    if (*size <= kBreakEvenHistogramSize) {
+      return kEntryWidth*(*size);
+    } else {
+    */
+    return sizeof(int32_t)*base::kMaxByte;
+  }
+
+
   Node* tree_ = nullptr;
   std::unordered_map<uint8_t, base::BitString> encode_map_ = {};
   std::vector<uint32_t> histogram_ = {};

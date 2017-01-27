@@ -98,11 +98,11 @@ void Huffman::Encode(const string& text, base::BitString* bits) const {
 
 void Huffman::Encode(
     const void* text, int size, base::BitString* bits) const {
-  const uint8_t* values_ptr = reinterpret_cast<const uint8_t>(text);
+  const uint8_t* values_ptr = reinterpret_cast<const uint8_t*>(text);
 
   bits->clear();
   for (int i = 0; i < size; ++i) {
-    bits->Append(encode_map_.at(text[i]));
+    bits->Append(encode_map_.at(values_ptr[i]));
   }
 }
 
@@ -122,12 +122,12 @@ bool Huffman::Decode(const BitString& bits, void** data, int* size) const {
     }
   }
 
-  &size = res.size();
-  &data = new uint8_t[size];
+  *size = res.size();
+  *data = new uint8_t[*size];
   memcpy(*data, res.data(), *size);
 
   // Return true if and only if all bits contained usable information
-  return (node_iter == tree);
+  return (node_iter == tree_);
 }
 
 void Huffman::Serialize(void** buffer, int* size) const {
@@ -176,10 +176,9 @@ void Huffman::Serialize(void** buffer, int* size) const {
 }
 
 bool Huffman::Unserialize(const void* bytes, int size) {
-  if (size < Huffman::get_header_size(bytes)) {
+  if (size < Huffman::header_size(bytes)) {
     return false;
   }
-  assert(size >= Huffman::get_header_size(bytes));
 
   int num_entries = *(reinterpret_cast<const uint8_t*>(bytes));
 

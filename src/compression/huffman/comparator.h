@@ -6,6 +6,7 @@
 
 #include "compression/huffman/node.h"
 
+namespace compression {
 namespace huffman {
 struct Comparator {
  public:
@@ -14,3 +15,4 @@ struct Comparator {
   }
 };  // struct Comparator
 }  // namespace huffman
+}  // namespace compression

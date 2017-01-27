@@ -8,6 +8,7 @@
 
 #include <cstdint>
 
+namespace compression {
 namespace huffman {
 class Node {
  public:
@@ -103,5 +104,6 @@ class Node {
   Node* right_ = nullptr;
 };  // class Node
 }  // namespace huffman
+}  // namespace compression
  
 #endif  // HUFFMAN_NODE_H_
