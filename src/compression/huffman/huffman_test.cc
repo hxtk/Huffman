@@ -13,6 +13,7 @@
 #include <base/bitstring.h>
 #include <compression/huffman/huffman.h>
 
+using std::cin;
 using std::cout;
 using std::endl;
 using std::string;
@@ -33,30 +34,32 @@ int main(int argc, char** argv) {
   /////////////////////////////////////////////////////////////////////////////
   // Encode and Decode, compare results
   Huffman huf;
-  huf.BuildTree(str);
+  huf.BuildTree(str.c_str(), str.size());
   huf.BuildMap();
 
   BitString bits;
   huf.Encode(str, &bits);
 
   cout << "Encoded to:\n" << bits << endl;
+  cout << "Encoded size: " << bits.size()/8 << endl;
+  cout << "Original size: " << str.size() << endl;
 
   cout << "==========TESTING DATA FIDELITY==========" << endl;
   cout << "Decoding . . ." << endl;
 
   int size = -1;
   char* decoded = nullptr;
-  if (huf.Decode(bits, &decoded, &size)) {
+  if (huf.Decode(bits, reinterpret_cast<void**>(&decoded), &size)) {
     cout << "BitString sane" << endl;
   } else {
     cout << "Invalid BitString" << endl;
   }
 
-  assert (decoded[size - 1] == 0);
+  tmp.clear();
   tmp = string(decoded);
   delete[] decoded;
 
-  cout << "Decoded to:\n" << tmp << endl;
+  cout << "Decoded to:\n\n" << tmp << endl;
   cout << "Fidelity: " << (tmp == str) << endl;
 
   /////////////////////////////////////////////////////////////////////////////
@@ -72,19 +75,18 @@ int main(int argc, char** argv) {
   cout << "==========TESTING HISTOGRAM FIDELITY==========" << endl;
   cout << "Decoding . . ." << endl;
 
-  int size = -1;
-  char* decoded = nullptr;
-  if (huf2.Decode(bits, &decoded, &size)) {
+  size = -1;
+  decoded = nullptr;
+  if (huf.Decode(bits, reinterpret_cast<void**>(&decoded), &size)) {
     cout << "Histogram sane" << endl;
   } else {
     cout << "Bad histogram copy" << endl;
   }
 
-  assert (decoded[size - 1] == 0);
   tmp = string(decoded);
   delete[] decoded;
 
-  cout << "Decoded to:\n" << tmp << endl;
+  cout << "Decoded to:\n\n" << tmp << endl;
   cout << "Fidelity: " << (tmp == str) << endl;
 
 
